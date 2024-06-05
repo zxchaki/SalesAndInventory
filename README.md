@@ -1,1 +1,2 @@
-# SalesAndInventory
+# SaleAndInventory
+Kandyland-SalesAndInventory

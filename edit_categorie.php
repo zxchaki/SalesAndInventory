@@ -1,0 +1,122 @@
+<?php
+  $page_title = 'Edit categorie';
+  require_once('includes/load.php');
+  // Checkin What level user has permission to view this page
+  page_require_level(1);
+  // Get categories
+$categories = find_all('categories'); // Modified: Added code to fetch categories
+$category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 'all'; // Modified: Get selected category
+
+// Fetch products based on selected category
+if ($category_id == 'all') {
+  $products = join_product_table();
+} else {
+  $products = find_products_by_category($category_id); // Modified: Fetch products by category
+}
+
+// Step 1: Identify Critical Stock Products
+$critical_stock_products = array(); // Initialize array to hold critical stock products
+foreach ($products as $product) {
+  if ($product['quantity'] < 10) {
+    $critical_stock_products[] = $product; // Add critical stock product to array
+  }
+}
+
+// Step 2: Pass the Count to Header.php
+$_SESSION['critical_stock_count'] = count($critical_stock_products);
+?>
+<?php
+  //Display all catgories.
+  $categorie = find_by_id('categories',(int)$_GET['id']);
+  if(!$categorie){
+    $session->msg("d","Missing categorie id.");
+    redirect('categorie.php');
+  }
+?>
+
+<?php
+if(isset($_POST['edit_cat'])){
+  $req_field = array('categorie-name');
+  validate_fields($req_field);
+  $cat_name = remove_junk($db->escape($_POST['categorie-name']));
+  if(empty($errors)){
+        $sql = "UPDATE categories SET name='{$cat_name}'";
+       $sql .= " WHERE id='{$categorie['id']}'";
+     $result = $db->query($sql);
+     if($result && $db->affected_rows() === 1) {
+       $session->msg("s", "Successfully updated Categorie");
+       redirect('categorie.php',false);
+     } else {
+       $session->msg("d", "Sorry! Failed to Update");
+       redirect('categorie.php',false);
+     }
+  } else {
+    $session->msg("d", $errors);
+    redirect('categorie.php',false);
+  }
+}
+?>
+<?php include_once('layouts/header.php'); ?>
+
+<div class="row">
+   <div class="col-md-12">
+     <?php echo display_msg($msg); ?>
+   </div>
+   <div class="col-md-5">
+     <div class="panel panel-default">
+       <div class="panel-heading">
+         <strong>
+           <span class="glyphicon glyphicon-th"></span>
+           <span>Editing <?php echo remove_junk(ucfirst($categorie['name']));?></span>
+        </strong>
+       </div>
+       <div class="panel-body">
+         <form method="post" action="edit_categorie.php?id=<?php echo (int)$categorie['id'];?>">
+           <div class="form-group">
+               <input type="text" class="form-control" name="categorie-name" value="<?php echo remove_junk(ucfirst($categorie['name']));?>">
+           </div>
+           <button type="submit" name="edit_cat" class="btn btn-primary">Update categorie</button>
+       </form>
+       </div>
+     </div>
+   </div>
+</div>
+<!-- Step 3: Low Stock Modal -->
+<div class="modal fade" id="lowStockModal" tabindex="-1" role="dialog" aria-labelledby="lowStockModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title" id="lowStockModalLabel"><b>Low Stock Products</b></h4>
+      </div>
+      <div class="modal-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th >Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($critical_stock_products as $critical_product) : ?>
+              <tr>
+                <td><em><?php echo remove_junk($critical_product['name']); ?></em></td>
+                <td style="text-align: center; color:red"><b><?php echo remove_junk($critical_product['quantity']); ?></b></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default btn-danger" data-dismiss="modal">
+          <span class="glyphicon glyphicon-remove"></span> Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<?php include_once('layouts/footer.php'); ?>
